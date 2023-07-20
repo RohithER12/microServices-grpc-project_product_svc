@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/RohithER12/product-svc/pkg/db"
@@ -75,15 +76,16 @@ func (s *Server) DecreaseStock(ctx context.Context, req *pb.DecreaseStockRequest
 	}
 
 	var log models.StockDecreaseLog
-
+	fmt.Println("\n\norderid\n\n", req.OrderId)
 	if result := s.H.DB.Where(&models.StockDecreaseLog{OrderId: req.OrderId}).First(&log); result.Error == nil {
+		fmt.Println(result)
 		return &pb.DecreaseStockResponse{
 			Status: http.StatusConflict,
 			Error:  "Stock already decreased",
 		}, nil
 	}
 
-	product.Stock = product.Stock - 1
+	product.Stock = product.Stock - req.Quantity
 
 	s.H.DB.Save(&product)
 
