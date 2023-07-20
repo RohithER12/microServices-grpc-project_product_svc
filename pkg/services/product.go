@@ -97,6 +97,31 @@ func (s *Server) DecreaseStock(ctx context.Context, req *pb.DecreaseStockRequest
 	}, nil
 }
 
+func (s *Server) ListProducts(ctx context.Context, req *pb.ListProductsRequest) (*pb.ListProductsResponse, error) {
+	var products []models.Product
+
+	result := s.H.DB.Find(&products)
+	if result.Error != nil {
+		return &pb.ListProductsResponse{
+			Status: http.StatusNotFound,
+			Error:  result.Error.Error(),
+		}, nil
+	}
+
+	var response pb.ListProductsResponse
+	for _, product := range products {
+		data := &pb.FindOneData{
+			Id:    product.Id,
+			Name:  product.Name,
+			Stock: product.Stock,
+			Price: product.Price,
+		}
+		response.Data = append(response.Data, data)
+	}
+
+	return &response, nil
+}
+
 // func (s *Server) mustEmbedUnimplementedProductServiceServer() {
 // 	// Empty implementation
 // }
