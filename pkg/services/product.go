@@ -8,11 +8,13 @@ import (
 	"github.com/RohithER12/product-svc/pkg/db"
 	"github.com/RohithER12/product-svc/pkg/models"
 	pb "github.com/RohithER12/product-svc/pkg/pb"
+	"github.com/RohithER12/product-svc/pkg/repo"
 )
 
 type Server struct {
 	H db.Handler
 	pb.UnimplementedProductServiceServer
+	Product repo.Product
 }
 
 func (s *Server) CreateProduct(ctx context.Context, req *pb.CreateProductRequest) (*pb.CreateProductResponse, error) {
@@ -22,11 +24,11 @@ func (s *Server) CreateProduct(ctx context.Context, req *pb.CreateProductRequest
 	product.Stock = req.Stock
 	product.Price = req.Price
 
-	if result := s.H.DB.Create(&product); result.Error != nil {
+	if err := s.Product.Create(product); err != nil {
 		return &pb.CreateProductResponse{
 			Status: http.StatusConflict,
-			Error:  result.Error.Error(),
-		}, nil
+			Error:  err.Error(),
+		}, err
 	}
 
 	return &pb.CreateProductResponse{
@@ -36,12 +38,12 @@ func (s *Server) CreateProduct(ctx context.Context, req *pb.CreateProductRequest
 }
 
 func (s *Server) FindOne(ctx context.Context, req *pb.FindOneRequest) (*pb.FindOneResponse, error) {
-	var product models.Product
 
-	if result := s.H.DB.First(&product, req.Id); result.Error != nil {
+	product, err := s.Product.FindOne(req.Id)
+	if err != nil {
 		return &pb.FindOneResponse{
 			Status: http.StatusNotFound,
-			Error:  result.Error.Error(),
+			Error:  err.Error(),
 		}, nil
 	}
 
@@ -56,6 +58,82 @@ func (s *Server) FindOne(ctx context.Context, req *pb.FindOneRequest) (*pb.FindO
 		Status: http.StatusOK,
 		Data:   data,
 	}, nil
+}
+
+func (s *Server) ListProducts(ctx context.Context, req *pb.ListProductsRequest) (*pb.ListProductsResponse, error) {
+
+	products, err := s.Product.ListAll()
+	if err != nil {
+		return &pb.ListProductsResponse{
+			Status: http.StatusNotFound,
+			Error:  err.Error(),
+		}, nil
+	}
+
+	var response pb.ListProductsResponse
+	for _, product := range products {
+		data := &pb.FindOneData{
+			Id:    product.Id,
+			Name:  product.Name,
+			Stock: product.Stock,
+			Price: product.Price,
+		}
+		response.Data = append(response.Data, data)
+	}
+
+	return &response, nil
+}
+
+func (s *Server) Search(ctx context.Context, req *pb.SearchRequest) (*pb.SearchReponse, error) {
+	target := req.Search
+
+	products, err := s.Product.Search(target)
+	if err != nil {
+		return &pb.SearchReponse{
+			Status: http.StatusNotFound,
+			Error:  err.Error(),
+		}, nil
+	}
+	var response pb.SearchReponse
+	for _, product := range products {
+		data := &pb.FindOneData{
+			Id:    product.Id,
+			Name:  product.Name,
+			Stock: product.Stock,
+			Price: product.Price,
+		}
+		response.Data = append(response.Data, data)
+	}
+
+	return &response, nil
+}
+
+func (s *Server) SortByPrice(ctx context.Context, req *pb.SortByPriceRequest) (*pb.SortByPriceResponse, error) {
+	order := true
+	if req.Sort != "ASC" {
+		order = false
+	}
+
+	products, err := s.Product.SortByPrice(order)
+	if err != nil {
+		return &pb.SortByPriceResponse{
+			Status: http.StatusNotFound,
+			Error:  err.Error(),
+		}, nil
+	}
+	var response pb.SortByPriceResponse
+	for _, product := range products {
+		data := &pb.FindOneData{
+			Id:    product.Id,
+			Name:  product.Name,
+			Stock: product.Stock,
+			Price: product.Price,
+		}
+		response.Data = append(response.Data, data)
+	}
+
+	return &response, nil
+
 }
 
 func (s *Server) DecreaseStock(ctx context.Context, req *pb.DecreaseStockRequest) (*pb.DecreaseStockResponse, error) {
@@ -97,31 +175,6 @@ func (s *Server) DecreaseStock(ctx context.Context, req *pb.DecreaseStockRequest
 	return &pb.DecreaseStockResponse{
 		Status: http.StatusOK,
 	}, nil
-}
-
-func (s *Server) ListProducts(ctx context.Context, req *pb.ListProductsRequest) (*pb.ListProductsResponse, error) {
-	var products []models.Product
-
-	result := s.H.DB.Find(&products)
-	if result.Error != nil {
-		return &pb.ListProductsResponse{
-			Status: http.StatusNotFound,
-			Error:  result.Error.Error(),
-		}, nil
-	}
-
-	var response pb.ListProductsResponse
-	for _, product := range products {
-		data := &pb.FindOneData{
-			Id:    product.Id,
-			Name:  product.Name,
-			Stock: product.Stock,
-			Price: product.Price,
-		}
-		response.Data = append(response.Data, data)
-	}
-
-	return &response, nil
 }
 
 // func (s *Server) mustEmbedUnimplementedProductServiceServer() {
