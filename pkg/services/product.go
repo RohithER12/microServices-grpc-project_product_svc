@@ -86,7 +86,7 @@ func (s *Server) ListProducts(ctx context.Context, req *pb.ListProductsRequest) 
 
 func (s *Server) Search(ctx context.Context, req *pb.SearchRequest) (*pb.SearchReponse, error) {
 	target := req.Search
-
+	fmt.Println("\ntarget\t", target)
 	products, err := s.Product.Search(target)
 	if err != nil {
 		return &pb.SearchReponse{
@@ -96,6 +96,8 @@ func (s *Server) Search(ctx context.Context, req *pb.SearchRequest) (*pb.SearchR
 	}
 	var response pb.SearchReponse
 	for _, product := range products {
+		fmt.Println("\nname:\t", product.Name)
+
 		data := &pb.FindOneData{
 			Id:    product.Id,
 			Name:  product.Name,
@@ -113,6 +115,7 @@ func (s *Server) SortByPrice(ctx context.Context, req *pb.SortByPriceRequest) (*
 	if req.Sort != "ASC" {
 		order = false
 	}
+	fmt.Println(order)
 
 	products, err := s.Product.SortByPrice(order)
 	if err != nil {

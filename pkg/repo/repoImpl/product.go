@@ -1,6 +1,8 @@
 package repoimpl
 
 import (
+	"fmt"
+
 	"github.com/RohithER12/product-svc/pkg/db"
 	"github.com/RohithER12/product-svc/pkg/models"
 )
@@ -20,7 +22,6 @@ func (p *ProductImpl) Create(product models.Product) error {
 
 func (p *ProductImpl) FindOne(id int64) (models.Product, error) {
 	var product models.Product
-
 	if result := p.H.DB.First(&product, id); result.Error != nil {
 		return models.Product{}, result.Error
 	}
@@ -38,10 +39,14 @@ func (p *ProductImpl) ListAll() ([]models.Product, error) {
 }
 
 func (p *ProductImpl) Search(target string) ([]models.Product, error) {
+	fmt.Println("Searching for:", target)
+
 	products := []models.Product{}
-	if result := p.H.DB.Where("name LIKE ?", "%"+target+"%").Find(&products); result.Error != nil {
+	if result := p.H.DB.Where("name ILIKE ?", target+"%").Find(&products); result.Error != nil {
+		fmt.Println("Database error:", result.Error)
 		return nil, result.Error
 	}
+	fmt.Println("Searching result:", products)
 	return products, nil
 }
 
